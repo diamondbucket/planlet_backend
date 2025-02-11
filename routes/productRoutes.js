@@ -11,7 +11,7 @@ const router = express.Router();
 
 // Route to save business info
 router.post("/save-business-info", saveBusinessInfo);
-router.post("/content-plans", protect, saveContentPlan);
+router.put("/content-plans", protect, saveContentPlan);
 router.get("/content-plans", protect, getContentPlans);
 
 // Route to get calendar

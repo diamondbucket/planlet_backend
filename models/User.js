@@ -19,6 +19,12 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 });
 
 // Password hashing middleware

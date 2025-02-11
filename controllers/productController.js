@@ -78,57 +78,63 @@ exports.saveBusinessInfo = async (req, res) => {
 exports.saveContentPlan = async (req, res) => {
   try {
     const { posts } = req.body;
-    const userId = req.user.userId;
-
-    // Validate input
-    if (!Array.isArray(posts)) {
-      return res.status(400).json({ message: "Invalid posts format" });
+    
+    if (!posts || !Array.isArray(posts)) {
+      return res.status(400).json({ message: "Invalid posts data" });
     }
 
-    // Save all posts
-    const savedPosts = await Promise.all(
-      posts.map(async (post) => {
-        const newPost = new ContentPlan({
-          user: userId,
-          date: new Date(post.date),
-          content: post.content,
-        });
-        return await newPost.save();
-      })
+    // Find and update existing plan
+    const existingPlan = await ContentPlan.findOneAndUpdate(
+      { user: req.user._id },
+      {
+        $set: {
+          posts: posts.map(post => ({
+            date: new Date(post.date),
+            content: post.content,
+            contentType: post.contentType || 'text',
+            theme: post.theme || 'general',
+            goal: post.goal,
+            platform: post.platform || 'General',
+            status: post.status || 'Draft'
+          })),
+          updatedAt: new Date()
+        }
+      },
+      { new: true, upsert: true } // Create if doesn't exist
     );
 
-    res.status(201).json({
-      message: "Content plan saved successfully",
-      posts: savedPosts,
+    res.status(200).json({
+      message: "Content plan updated successfully",
+      contentPlan: existingPlan
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Error saving content plan",
-      error: error.message,
-    });
+    console.error("Save Content Error:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
 exports.getContentPlans = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const { month, year } = req.query;
+    console.log("Fetching content for user:", req.user._id);
+    
+    const contentPlans = await ContentPlan.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean(); // Convert to plain JS objects
 
-    let query = { user: userId };
+    console.log("Found content plans:", contentPlans.length);
+    
+    // Transform to array of posts across all plans
+    const allPosts = contentPlans.flatMap(plan => 
+      plan.posts.map(post => ({
+        ...post,
+        planId: plan._id, // Include plan ID for reference
+        userId: plan.user // Include user ID for verification
+      }))
+    );
 
-    if (month && year) {
-      const startDate = new Date(year, month - 1);
-      const endDate = new Date(year, month);
-      query.date = { $gte: startDate, $lt: endDate };
-    }
-
-    const contentPlans = await ContentPlan.find(query).sort({ date: 1 });
-
-    res.status(200).json(contentPlans);
+    res.json(allPosts);
   } catch (error) {
-    res.status(500).json({
-      message: "Error fetching content plans",
-      error: error.message,
-    });
+    console.error("Get Content Error:", error);
+    res.status(500).json({ message: error.message });
   }
 };

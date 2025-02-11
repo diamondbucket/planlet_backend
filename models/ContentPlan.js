@@ -6,23 +6,19 @@ const contentPlanSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  date: {
+  posts: [{
+    date: Date,
+    content: String,
+    contentType: String,
+    theme: String,
+    goal: String,
+    platform: String,
+    status: String
+  }],
+  createdAt: {
     type: Date,
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  platform: {
-    type: String,
-    default: "General",
-  },
-  status: {
-    type: String,
-    enum: ["Draft", "Scheduled", "Published"],
-    default: "Draft",
-  },
+    default: Date.now
+  }
 });
 
 module.exports = mongoose.model("ContentPlan", contentPlanSchema);
